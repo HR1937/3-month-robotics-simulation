@@ -236,3 +236,37 @@ void update_pose(Pose &p, double v, double omega, double dt) {
      - Plot X vs Y to visualize the circular arc (saved as `week1_path_plot.png`).
 
 ---
+## 10. Encoder-based odometry summary (real robot intuition)
+
+On a real differential-drive robot, wheel encoders and kinematic equations work together to estimate pose.
+
+Each control cycle:
+
+1. We start from the previous pose estimate:
+   - \(x(t), y(t), \theta(t)\).
+
+2. Encoders on each wheel give **tick counts** since the last cycle:
+   - `ticks_L`, `ticks_R`.
+
+3. Using known hardware parameters:
+   - wheel radius \(R\),
+   - encoder ticks per revolution \(N\),
+   - time step \(\Delta t\),
+   we convert ticks → wheel linear speeds:
+   - \(v_L\) and \(v_R\).
+
+4. From wheel speeds, we compute **body velocities** (forward kinematics):
+   - \(v = \dfrac{v_R + v_L}{2}\) (forward speed),
+   - \(\omega = \dfrac{v_R - v_L}{L}\) (turn rate).
+
+5. From \(v\) and \(\omega\), we update the pose by odometry:
+   - \(x_{\text{new}} = x + v \cos(\theta) \cdot \Delta t\),
+   - \(y_{\text{new}} = y + v \sin(\theta) \cdot \Delta t\),
+   - \(\theta_{\text{new}} = \theta + \omega \cdot \Delta t\).
+
+So the data flow in a real robot is:
+
+- **Encoders → \(v_L, v_R\) → \(v, \omega\) → new \(x,y,\theta\)**
+
+This pose is only an estimate (it can drift due to slip and noise), so in real systems it is often corrected or fused with IMU and SLAM.  
+For Week 1, I am focusing only on this pure encoder + kinematics odometry pipeline in simulation.
