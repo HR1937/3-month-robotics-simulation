@@ -236,37 +236,124 @@ void update_pose(Pose &p, double v, double omega, double dt) {
      - Plot X vs Y to visualize the circular arc (saved as `week1_path_plot.png`).
 
 ---
-## 10. Encoder-based odometry summary (real robot intuition)
+## 10. One-step odometry story (how encoders update pose)
 
-On a real differential-drive robot, wheel encoders and kinematic equations work together to estimate pose.
+I imagine odometry as a repeated “small step” story.
 
-Each control cycle:
+### 10.1 Start of the step
 
-1. We start from the previous pose estimate:
-   - \(x(t), y(t), \theta(t)\).
+At some time t, I already have an estimated pose:
+- x(t), y(t), theta(t)
 
-2. Encoders on each wheel give **tick counts** since the last cycle:
-   - `ticks_L`, `ticks_R`.
+This is the pose at the beginning of the step.
 
-3. Using known hardware parameters:
-   - wheel radius \(R\),
-   - encoder ticks per revolution \(N\),
-   - time step \(\Delta t\),
-   we convert ticks → wheel linear speeds:
-   - \(v_L\) and \(v_R\).
+### 10.2 During a short time dt
 
-4. From wheel speeds, we compute **body velocities** (forward kinematics):
-   - \(v = \dfrac{v_R + v_L}{2}\) (forward speed),
-   - \(\omega = \dfrac{v_R - v_L}{L}\) (turn rate).
+I let the robot move for a short time dt (for example, 0.1 s).
 
-5. From \(v\) and \(\omega\), we update the pose by odometry:
-   - \(x_{\text{new}} = x + v \cos(\theta) \cdot \Delta t\),
-   - \(y_{\text{new}} = y + v \sin(\theta) \cdot \Delta t\),
-   - \(\theta_{\text{new}} = \theta + \omega \cdot \Delta t\).
+During this exact interval:
+- The left wheel rotates some amount.
+- The right wheel rotates some amount.
+- The encoders count how many ticks happened during this interval:
+  - ticks_L for the left wheel,
+  - ticks_R for the right wheel.
 
-So the data flow in a real robot is:
+These tick counts are only for this step, not total since startup.
 
-- **Encoders → \(v_L, v_R\) → \(v, \omega\) → new \(x,y,\theta\)**
+### 10.3 Ticks → wheel distances in this step
+
+I know hardware parameters:
+- wheel radius R,
+- encoder ticks per revolution N.
+
+For this step:
+
+- Angle turned by the left wheel:
+  delta_phi_L = (ticks_L / N) * 2 * pi
+
+- Distance travelled by the left wheel along the floor in this step:
+  d_L = R * delta_phi_L
+
+Similarly for the right wheel:
+- delta_phi_R = (ticks_R / N) * 2 * pi
+- d_R = R * delta_phi_R
+
+So d_L and d_R are the distances each wheel moved between time t and t + dt, not since the beginning of the run.
+
+### 10.4 Wheel distances → body motion in this step
+
+From these two distances for this step:
+
+- Forward distance of the robot’s center:
+  d_center = (d_L + d_R) / 2
+
+- Change in robot heading during this step:
+  delta_theta = (d_R - d_L) / L
+
+If I divide by dt, I get approximate velocities for this step:
+- v ≈ d_center / dt
+- omega ≈ delta_theta / dt
+
+### 10.5 Body motion → new global pose
+
+Using the pose at the start of the step, (x(t), y(t), theta(t)), I update:
+
+- x_new = x(t) + d_center * cos(theta(t))
+- y_new = y(t) + d_center * sin(theta(t))
+- theta_new = theta(t) + delta_theta
+
+Now the time is t + dt, and the new pose is:
+- (x_new, y_new, theta_new)
+
+This becomes the starting pose for the next step.
+
+### 10.6 Summary of the chain each step
+
+For every small time step, the data flow is:
+
+previous pose (x, y, theta)
+→ encoder ticks in this step
+→ wheel distances in this step (d_L, d_R)
+→ body motion in this step (d_center, delta_theta)
+→ new pose (x_new, y_new, theta_new)
+
+Repeating this many times gives the odometry estimate over time.
+
 
 This pose is only an estimate (it can drift due to slip and noise), so in real systems it is often corrected or fused with IMU and SLAM.  
 For Week 1, I am focusing only on this pure encoder + kinematics odometry pipeline in simulation.
+
+---
+## 11. How control and odometry use v, omega, vL, vR
+
+There are two opposite directions in a differential-drive robot:
+
+### 1) Control side (AI → wheels)
+
+- The planner/controller decides how the robot body should move:
+  - desired forward speed v_cmd,
+  - desired turn rate omega_cmd.
+- Inverse kinematics converts body velocities to wheel speeds:
+  - vL_cmd = v_cmd − (omega_cmd * L / 2)
+  - vR_cmd = v_cmd + (omega_cmd * L / 2)
+- These vL_cmd and vR_cmd are what we try to send to the motors (e.g., using PWM).
+- This direction answers: “Given how I want the robot to move (v, omega), what should each wheel do (vL, vR)?”
+
+### 2) Odometry side (wheels → pose)
+
+- Encoders measure what actually happened: ticks_L and ticks_R in the last dt.
+- From ticks and robot parameters, we compute actual wheel speeds:
+  - vL_meas, vR_meas.
+- Forward kinematics converts wheel speeds to body velocities:
+  - v = (vR_meas + vL_meas) / 2
+  - omega = (vR_meas − vL_meas) / L
+- Using v and omega, we update pose:
+  - x_new = x_old + v * cos(theta_old) * dt
+  - y_new = y_old + v * sin(theta_old) * dt
+  - theta_new = theta_old + omega * dt
+- This direction answers: “Given what the wheels actually did (vL, vR), how did the robot move (v, omega) and what is the new pose (x, y, theta)?”
+
+In a running robot, these two directions work together in a loop:
+- Control uses the current pose estimate to choose v_cmd, omega_cmd.
+- Odometry uses encoder feedback to update the pose estimate after each time step.
+
