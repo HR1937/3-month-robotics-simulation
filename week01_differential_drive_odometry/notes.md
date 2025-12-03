@@ -356,4 +356,30 @@ There are two opposite directions in a differential-drive robot:
 In a running robot, these two directions work together in a loop:
 - Control uses the current pose estimate to choose v_cmd, omega_cmd.
 - Odometry uses encoder feedback to update the pose estimate after each time step.
+---
+## 12. Short Notes for Header files, source files, linking, pragma once
 
+### .h files vs .cpp files
+- `.h` files contain **declarations** → function names, parameters, structs.
+- `.cpp` files contain **definitions** → actual full function code.
+- `main.cpp` includes the `.h` to know what functions exist.
+- Compiler believes the function exists, even though the body is elsewhere.
+
+### Compilation vs Linking
+- Each .cpp is compiled separately → creates .o object files.
+- The **linker** matches function calls in main.o with function implementations in other .o files.
+- That’s how `update_pose()` in main gets connected to real code in kinematics.cpp.
+
+### Why not put definitions in .h?
+If you include a header in multiple .cpp files and it contains function bodies:
+- Each .cpp gets its own copy of the function.
+- Linker finds duplicates.
+- Result: “multiple definition” error.
+
+### What is #pragma once?
+- It is a compiler directive.
+- Tells compiler: include this header only once.
+- Prevents accidentally including the same header multiple times.
+
+### Final summary sentence
+Headers tell what exists; source files hold the code; linker connects them; `#pragma once` prevents duplicate inclusion.
