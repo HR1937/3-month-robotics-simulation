@@ -9,18 +9,11 @@ int main() {
     double Vr = 2, Vl = 2, L = 0.5, dt = 1;
 
     cout << "x=0,y=0,theta=90" << endl;
-    cout << "V for Vr=" << Vr << ",Vl=" << Vl
-         << " is " << compute_v(Vr, Vl) << endl;
-
-    cout << "Omega for Vr=" << Vr << ",Vl=" << Vl
-         << " and L=" << L
-         << " is " << compute_omega(Vr, Vl, L) << endl;
+    cout << "V for Vr=" << Vr << ",Vl=" << Vl<< " is " << compute_v(Vr, Vl) << endl;
+    cout << "Omega for Vr=" << Vr << ",Vl=" << Vl<< " and L=" << L<< " is " << compute_omega(Vr, Vl, L) << endl;
 
     update_pose(p, Vr, Vl, L, dt);
-
     cout << "Updated Position is x=" << p.x
-         << "  y=" << p.y
-         << "   theta=" << p.theta / M_PI * 180
-         << " in degrees" << endl;
+         << "  y=" << p.y << "   theta=" << p.theta / M_PI * 180 << " in degrees" << endl;
     return 0;
 }
