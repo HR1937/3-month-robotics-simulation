@@ -863,3 +863,38 @@ Day 7 converts our odometry output into a graphical path.
 > C++ generates pose data → Python turns it into a picture.
 
 We now understand robot motion by seeing straight, circular, and rotating behaviour in a single PNG file.
+
+---
+
+# 16. Week 1 – Final Wrap-Up
+
+## Why this wrap-up?
+
+All previous sections went deep into concepts, formulas, and code.  
+This final part is just to keep a **big-picture memory** of what Week 1 achieved.
+
+## What I built in Week 1
+
+- Understood differential drive robots and why they cannot move sideways.
+- Defined pose `(x, y, θ)` and used world vs robot frames.
+- Derived and used:
+  - `v = (Vr + Vl) / 2`
+  - `ω = (Vr − Vl) / L`
+- Implemented odometry integration:
+  - position and heading update using `dt`.
+- Simulated encoder ticks and reconstructed actual wheel speeds.
+- Tested three behaviours:
+  - Straight (Vr = Vl),
+  - Circle / curve (Vr > Vl),
+  - Rotation in place (Vr = −Vl).
+- Logged pose data to CSV files and plotted:
+  - XY paths,
+  - θ vs step for rotation,
+  in a single figure (`week1_path_plot.png`).
+
+## One-line memory of Week 1
+
+> **From wheel rotations → to encoder ticks → to pose → to a plotted path.**
+
+This closes Week 1.  
+Next, in Week 2, I will focus on **PID control** to decide *how* the wheels should move to reach a desired speed smoothly.
