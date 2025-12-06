@@ -528,7 +528,7 @@ Real robots:
 
 > Our simulation is now doing the same → Good enough to extend into ROS2 + Gazebo + SLAM later.
 ---
-# 14. Testing Odometry on Virtual Robot Paths (Day 6)
+# 14. Testing Odometry on Virtual Robot Paths
 
 ## Why are we doing this today?
 
@@ -630,3 +630,236 @@ Those tiny values are mistakes from floating-point math, not from our logic. Exa
 ### One-Line Understanding
 
 > Same speeds → different pose each step because the robot keeps moving forward in time.
+
+# 15. Visualising Robot Path with Python (Day 7)
+
+## 15.1 Why are we doing this?
+
+Till now, we only printed numbers for pose:
+
+* x (position in X)
+* y (position in Y)
+* θ (heading angle)
+
+Numbers are hard to "see".
+
+For understanding motion, it is much easier if we can:
+
+* see the path of the robot on an XY graph
+* see how θ changes during rotation
+
+> Day 7 is about turning odometry output into a picture, not just trusting the console.
+
+---
+
+## 15.2 What we log from C++ (CSV files)
+
+From `main.cpp`, after each pose update, we save:
+
+* x
+* y
+* theta_deg (angle in degrees)
+
+into `.csv` files:
+
+* `Straight_path.csv`
+* `Circular_path.csv`
+* `Rotated_path.csv`
+
+Each CSV has a simple format:
+```
+x,y,theta_deg
+0,0,90
+0,2,90
+...
+```
+
+### Why CSV?
+
+* It is just plain text.
+* Each row = one time step.
+* Columns are separated by commas → easy for Python to read.
+
+We also overwrite files (using truncate mode) so that each C++ run gives fresh data, not mixed with old values.
+
+---
+
+## 15.3 Why we use Python + matplotlib
+
+We use Python only as a tool to plot.
+
+> The main logic stays in C++, Python is for drawing.
+
+### What is a library?
+
+A library is ready-made code written by others that we can reuse instead of writing plotting logic from scratch.
+
+### What is matplotlib?
+
+`matplotlib` is a plotting library for Python.
+
+It can draw:
+
+* line plots
+* scatter plots
+* bar graphs
+* etc.
+
+### What is pyplot and plt?
+
+We write:
+```python
+import matplotlib.pyplot as plt
+```
+
+* `matplotlib` → main library
+* `pyplot` → a part of matplotlib that gives simple plotting functions
+* `plt` → just a short nickname we use in our code
+
+The dot `.` means "inside":
+
+* `matplotlib.pyplot` → pyplot module inside matplotlib
+* `plt.plot(...)` → use the plot function from pyplot
+
+So when we call:
+```python
+plt.plot(xs, ys)
+```
+
+we are saying:
+
+> "Ask the plotting library to draw a curve through these points."
+
+---
+
+## 15.4 Reading CSV and plotting paths
+
+In `graph-plot.py`, we:
+
+### Read CSV files
+```python
+def read_csv(filename):
+    xs = []
+    ys = []
+    thetas_deg = []
+    with open(filename, "r") as f:
+        next(f)          # skip header line
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            x, y, theta = line.split(",")
+            xs.append(float(x))
+            ys.append(float(y))
+            thetas_deg.append(float(theta))
+    return xs, ys, thetas_deg
+```
+
+* `open(filename, "r")` → open file for reading.
+* `next(f)` → skip first line (`x,y,theta_deg`).
+* `line.split(",")` → split `"0,2,90"` into `"0"`, `"2"`, `"90"`.
+* `float(...)` → convert strings into numbers.
+
+### Get data for all 3 motions
+```python
+sx, sy, sth = read_csv("Straight_path.csv")
+cx, cy, cth = read_csv("Circular_path.csv")
+rx, ry, rth = read_csv("Rotated_path.csv")
+```
+
+### Create one figure with two plots side by side
+```python
+plt.figure(figsize=(10,4))
+```
+
+This will give one PNG file with two subplots.
+
+---
+
+## 15.5 Left side graph – XY paths
+```python
+plt.subplot(1, 2, 1)
+plt.plot(sx, sy, label="Straight")
+plt.plot(cx, cy, label="Circular")
+plt.plot(rx, ry, label="Rotated", marker="o")
+
+plt.title("Week 1 - Robot Paths")
+plt.xlabel("x (m)")
+plt.ylabel("y (m)")
+plt.grid(True)
+plt.axis("equal")
+plt.legend()
+```
+
+* `subplot(1, 2, 1)` → 1 row, 2 columns, we are now drawing in left panel.
+* Straight path → almost a vertical line (since robot faces +Y).
+* Circular path → curved line (because `Vr > Vl`).
+* Rotated path → points almost at same (x, y), robot spins in place.
+* `axis("equal")` → same scale on X and Y, so circles do not look stretched.
+
+---
+
+## 15.6 Right side graph – θ vs step (rotation test)
+```python
+steps = list(range(len(rth)))
+plt.subplot(1, 2, 2)
+plt.plot(steps, rth)
+
+plt.title("Rotation Test - Heading vs Step")
+plt.xlabel("Step")
+plt.ylabel("theta (deg)")
+plt.grid(True)
+```
+
+* X-axis = step number (0, 1, 2, …).
+* Y-axis = `theta_deg`.
+* For rotation test, θ increases quickly → shows how fast robot turns.
+
+> This makes orientation (θ) clearly visible without needing arrows.
+
+---
+
+## 15.7 Flow of running everything
+
+### Run C++ program
+
+Compile and run `main.cpp`.
+
+It generates:
+
+* `Straight_path.csv`
+* `Circular_path.csv`
+* `Rotated_path.csv`
+
+### Run Python plotting script
+
+Run `graph-plot.py`:
+```bash
+python graph-plot.py
+```
+
+This script:
+
+* reads all three CSVs,
+* creates a combined figure with:
+  * Left: XY paths
+  * Right: θ vs step for rotation
+* saves the image as:
+  * `week1_path_plot.png`
+
+### Result
+
+We now have a visual summary of:
+
+* how the robot moved in X–Y,
+* how its orientation changed when rotating.
+
+---
+
+## 15.8 Quick Summary
+
+Day 7 converts our odometry output into a graphical path.
+
+> C++ generates pose data → Python turns it into a picture.
+
+We now understand robot motion by seeing straight, circular, and rotating behaviour in a single PNG file.
