@@ -527,3 +527,106 @@ Real robots:
 * combine them to reduce drift
 
 > Our simulation is now doing the same → Good enough to extend into ROS2 + Gazebo + SLAM later.
+---
+# 14. Testing Odometry on Virtual Robot Paths (Day 6)
+
+## Why are we doing this today?
+
+Till now, we calculated how a robot moves using wheel data and odometry formulas. But we never checked if the robot actually behaves like a real one when it moves straight, turns, or rotates.
+
+So Day 6 is simply about checking the behaviour:
+
+* If we give certain wheel speeds,
+* Does the robot update its pose in a sensible way?
+
+> We are not testing accuracy today.<br>
+> We are only checking correct motion shape (straight, circle, rotation).
+
+---
+
+## What is happening in Day-6 code?
+
+We:
+
+1. Give a fixed wheel command (like `Vr=2`, `Vl=2`).
+2. We convert those speeds to fake encoder ticks.
+3. From ticks, we again recalculate `Vr` and `Vl` (like a real robot).
+4. Then we update the pose using those measured values.
+
+Because there is no error or noise yet, the measured speeds are the same every loop, so:
+
+* Ticks remain same every step,
+* `Vl` and `Vr` remain same every step.
+
+> Even though speeds are fixed, the robot's position keeps changing because the pose we update each time becomes the "starting point" for the next step.
+
+---
+
+## Understanding the 3 Motions We Tested
+
+### 1. Straight Line
+
+We set:
+```
+Vr = Vl
+```
+
+Meaning both wheels move equally, so the robot cannot rotate. Since our robot is facing 90° initially (towards +Y axis), its:
+
+* x stays 0
+* y keeps increasing
+* θ stays constant (90°)
+
+So the pose moves in a straight upward line.
+
+---
+
+### 2. Circle / Curved Motion
+
+We set:
+```
+Vr > Vl
+```
+
+The right wheel moves faster than the left wheel, so the robot must turn left. Now at each step:
+
+* x and y both change
+* θ keeps increasing
+* The robot slowly curves
+
+This is how differential drive robots follow curved paths (one wheel faster creates rotation around a circle).
+
+---
+
+### 3. Rotation in Place
+
+We set:
+```
+Vr = -Vl
+```
+
+The wheels rotate in opposite directions, so the robot spins around its own center. Now:
+
+* x and y do not change
+* θ changes a lot
+* Robot stays at same place but rotates
+
+This shows differential drive can rotate without moving forward.
+
+---
+
+## Why were we getting tiny weird numbers like `1.2e−14`?
+
+Those tiny values are mistakes from floating-point math, not from our logic. Example: `0.00000000000001` is shown as `1e-14`. They are practically zero, so we replaced anything very small with 0 while printing.
+
+---
+
+## Simple Summary
+
+* Day 6 does not measure accuracy.
+* It checks if different wheel speeds create correct movement shapes.
+* Since we did not add any real-world errors, ticks and speeds remain the same, and only pose keeps changing.
+
+### One-Line Understanding
+
+> Same speeds → different pose each step because the robot keeps moving forward in time.
