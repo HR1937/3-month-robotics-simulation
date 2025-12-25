@@ -5,16 +5,18 @@ Right now I am working on **Week 1**.
 
 ---
 
-## Current Status
+**Status:** Week 2 in progress (back on track after college exams)
 
-- 🟩 Week 1 – Differential drive kinematics & odometry — IN PROGRESS  
-- ⬜ Week 2 – PID control simulation  
+---
+
+## Current Progress
+
+- 🟩 Week 1 – Differential drive kinematics & odometry
+- 🟨 Week 2 – PID control simulation - **In Progress (Theory phase)**
 - ⬜ Week 3 – ROS2 basics (pub/sub, service)  
 - ⬜ Week 4 – URDF + TF  
 - ⬜ Month 2 – Gazebo + perception  
 - ⬜ Month 3 – SLAM + autonomous navigation  
-
-(Checked weeks will be marked as completed as I progress.)
 
 ---
 
